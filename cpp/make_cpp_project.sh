@@ -30,7 +30,7 @@ cat > Makefile << EOF
 include Makefile.mk
 
 CPPFLAGS=\$(CPPUNIT_INCLUDES) -I\$(SRC_DIR)/$project
-all: prepare lib$Project.so Demo
+all: prepare lib$Project.so Demo tests
 
 Demo: lib$Project.so main.o
 	\$(LINKER) main.o \$(LDFLAGS) -L\$(SRC_DIR)/lib -l$Project -o \$@
@@ -47,6 +47,10 @@ clean:
 	rm -f *.o */*.o *.so
 	rm -f Demo
 	rm -f \$(fc_objects)
+
+tests:
+	cd \$(SRC_DIR)/test && \$(CXX) \$(CPPUNIT_INCLUDES) \$(CPPUNIT_LIB) -L\$(SRC_DIR)/lib -l$Project -o test.exe *.cpp
+	\$(SRC_DIR)/test/test.exe
 EOF
 
 echo "Create Makefile.mk"
@@ -72,7 +76,7 @@ LINKER:=g++
 # CPP unit stuff
 CPPUNIT_INCLUDES := -I/opt/local/include
 CPPUNIT_LIB_PATH := -L/opt/local/lib
-CPPUNIT_LIB := \$(CPPUNIT_LIB_PATH) -lcppunit
+CPPUNIT_LIB := \$(CPPUNIT_LIB_PATH) -lcppunit -ldl
 
 # sigc++ stuff
 SIGC_INCLUDES := -I/opt/local/include/sigc++-2.0 -I/opt/local/lib/sigc++-2.0/include
@@ -118,6 +122,59 @@ void $Project::method() {
     std::cout << "$Project::method" << std::endl;
 };
 EOF.cpp
+
+mkdir -p test
+echo "Create test/${project}_t.cpp"
+cat > test/${project}_t.cpp << EOF_T_cpp
+// export LD_LIBRARY_PATH=/usr/local/lib
+// g++ -I/usr/local/include/cppunit -L/usr/local/lib -lcppunit -ldl *.cpp
+#include "${Project}_t.h"
+#include <cppunit/TestAssert.h>
+#include <cppunit/TestCaller.h>
+#include <cppunit/ui/text/TestRunner.h>
+#include <iostream>
+#include <set>
+#include <stdexcept>
+
+using namespace std;
+void ${Project}_t::setUp() {}
+void ${Project}_t::tearDown() { }
+void ${Project}_t::testSimple()
+{
+    CPPUNIT_ASSERT(0 < 1);
+}
+CppUnit::Test* ${Project}_t::suite()
+{
+    CppUnit::TestSuite* suiteOfTests = new CppUnit::TestSuite("${Project}_t");
+    suiteOfTests->addTest( new CppUnit::TestCaller<${Project}_t>(
+            "testSimple",
+            &${Project}_t::testSimple ) );
+    return suiteOfTests;
+}
+int main()
+{
+    CppUnit::TextUi::TestRunner runner;
+    runner.addTest( ${Project}_t::suite() );
+    runner.run();
+    return 0;
+}
+EOF_T_cpp
+
+echo "Create test/${project}_t.h"
+cat > test/${project}_t.h << EOF_T_h
+#include <cppunit/TestFixture.h>
+#include <cppunit/TestSuite.h>
+#include <cppunit/Test.h>
+
+class ${Project}_t : public CppUnit::TestFixture
+{
+    public:
+    void setUp();
+    void tearDown();
+    void testSimple();  // Our test!
+    static CppUnit::Test* suite();
+};
+EOF_T_h
 
 echo "Compile $project"
 make
