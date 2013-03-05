@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# check number of input arguments
+E_BADARGS=65
+if [ $# -eq 1 ]; then
+    input=$1
+    sdir="."
+    if  [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
+        echo "Usage: `basename $0` pattern <source_dir>"
+        exit
+    fi
+elif [ $# -eq 2 ]; then
+    input=$1
+    sdir=$2
+else
+    echo "Usage: `basename $0` pattern <source_dir>"
+    exit $E_BADARGS
+fi
+
+# look-up files in current/given directory
+files=`find $sdir -name "$input.*" -type f | egrep -v ".o$|.pyc$|.so$|.a$|~$"`
+
+# look-up function which invoke less command over file choice
+see_file()
+{
+    if  [ "$1" == "y" ] || [ "$1" == "Y" ] || [ "$1" == "a" ] || [ "$1" == "all" ]; then
+        less $files
+    fi
+    if  [ "$1" == "n" ] || [ "$1" == "N" ] || [ "$1" == "q" ] || [ "$1" == "Q" ]; then
+        exit
+    fi
+
+    filelist=""
+    # match 1,2,3 sequence
+    if [[ $1 =~ [0-9]+,[0-9] ]]; then
+        range=`echo $1 | sed "s/,/ /g"`
+        min=`echo $range | awk '{split($0,a," ");print a[1]}'`
+        max=`echo $range | awk '{z=split($0,a," ");print a[z]}'`
+        i=1
+        for fname in $files; do
+            if [[ $i -ge $min && $i -le $max ]]; then
+                filelist+=" $fname"
+            fi
+            i=$(($i+1))
+        done
+    # match 1-3 range
+    elif [[ $1 =~ [0-9]+-[0-9] ]]; then
+        range=`echo $1 | awk 'BEGIN{ORS=" "} {split($1,a,"-");for(i=a[1];i<=a[2];i++) print i}'`
+        min=`echo $range | awk '{split($0,a," ");print a[1]}'`
+        max=`echo $range | awk '{z=split($0,a," ");print a[z]}'`
+        echo "min=$min, max=$max"
+        i=1
+        for fname in $files; do
+            if [[ $i -ge $min && $i -le $max ]]; then
+                filelist+=" $fname"
+            fi
+            i=$(($i+1))
+        done
+    # run for given number
+    else
+        i=1
+        for fname in $files; do
+            if [ "$i" == "$1" ]; then
+                filelist+=" $fname"
+            fi
+            i=$(($i+1))
+        done
+    fi
+    less $filelist
+}
+
+# print to stdout enumerated list of files to see
+if  [ -n "$files" ]; then
+    echo "Will see:"
+    for f in $files; do echo $f; done | \
+        awk 'BEGIN{c=1} {print("echo " c ". " $0 "\n"); ++c}' | \
+        /bin/sh
+    echo
+    # ask user what (s)he wants to see and perform this action
+    read -p "Do you wish to see these files? (file-id|a(ll)|q): " answer
+    see_file $answer
+else
+    echo "No files found"
+fi
+
