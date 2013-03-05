@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Filename:         see
+# Version:          A
+# Description:
+#   Find files which matched given pattern within local directory or given
+#   source dir. Then less those files.
+# Platforms:        GNU/Linux, Mac OS X, Windows Cygwin (not yet tested)
+# Depends:          bash, less, optionally install less.vim
+# Source:           https://github.com/vkuznet/Tools
+# Author:           Valentin Kuznetsov <vkuznet AT gmail DOT com>
+# Created on:       2013-03-05
+
 # check number of input arguments
 E_BADARGS=65
 if [ $# -eq 1 ]; then
