@@ -36,6 +36,7 @@ see_file()
 {
     if  [ "$1" == "y" ] || [ "$1" == "Y" ] || [ "$1" == "a" ] || [ "$1" == "all" ]; then
         less $files
+        exit
     fi
     if  [ "$1" == "n" ] || [ "$1" == "N" ] || [ "$1" == "q" ] || [ "$1" == "Q" ]; then
         exit
@@ -78,6 +79,7 @@ see_file()
         done
     fi
     less $filelist
+    exit
 }
 
 # print to stdout enumerated list of files to see
