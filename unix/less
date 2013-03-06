@@ -1,0 +1,23 @@
+#!/bin/bash
+# Allow to use own version of less, see
+# https://github.com/huyz/less.vim
+
+if [ -d "$1" ]; then
+    ls "$1"
+    exit
+fi
+
+stream="$@"
+if  [ -z "$stream" ]; then
+    # if input is a pipe, use standard less command with raw control chars
+    /usr/bin/less -R $stream
+else
+    # if input either a file or string
+    if  [ -n `command -v m` ]; then
+        # if we have less.vim plugin, use it
+        m $stream
+    else
+        # otherwise back to standard less command with raw control chars
+        /usr/bin/less -R $stream
+    fi
+fi
