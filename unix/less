@@ -8,8 +8,9 @@ if [ -d "$1" ]; then
 fi
 
 stream="$@"
-if  [ -z "$stream" ]; then
-    # if input is a pipe, use standard less command with raw control chars
+if  [ -z "$stream" ] || [ "${stream:0:1}" == "-" ]; then
+    # if input is a pipe or starts with hyphen (less flag)
+    # use standard less command with raw control chars
     /usr/bin/less -R $stream
 else
     # if input either a file or string
