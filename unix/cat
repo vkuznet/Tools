@@ -1,0 +1,23 @@
+#!/bin/bash
+print_msg()
+{
+    echo "$(tput setaf 1)$1$(tput sgr0) can't recognize file type, switch to /bin/cat"
+    echo ""
+}
+hig=`which highlight`
+pyg=`which pygmentize`
+if [ -n "$hig" ]; then
+    highlight -M $1
+    if [ $? -ne 0 ]; then
+        print_msg "highlight"
+        /bin/cat $1
+    fi
+elif [ -n "$pyg" ]; then
+    pygmentize -f terminal256 $1
+    if [ $? -ne 0 ]; then
+        print_msg "pygmentize"
+        /bin/cat $1
+    fi
+else
+   /bin/cat $1
+fi
