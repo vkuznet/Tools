@@ -70,7 +70,7 @@ CPPFLAGS=-I\$(SRC_DIR)
 # LDFLAGS= -std=c++0x -pthread
 CXXFLAGS=-O3 -g -fPIC -pthread \$(CXXOTHERFLAGS)
 LDFLAGS= -pthread
-CXX:=g++
+CXX:=g++ -std=c++11
 LINKER:=g++
 
 # CPP unit stuff
