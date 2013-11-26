@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Filename:         see
-# Version:          A
+# Version:          1.0
 # Description:
 #   Find files which matched given pattern within local directory or given
 #   source dir. Then less those files.
-# Platforms:        GNU/Linux, Mac OS X, Windows Cygwin (not yet tested)
+# Platforms:        GNU/Linux, Mac OS X
 # Depends:          bash, less, optionally install less.vim
 # Source:           https://github.com/vkuznet/Tools
 # Author:           Valentin Kuznetsov <vkuznet AT gmail DOT com>
@@ -13,23 +13,44 @@
 
 # check number of input arguments
 E_BADARGS=65
-if [ $# -eq 1 ]; then
+# all arguments from command line
+all=$*
+# make a decision
+if [ $# -eq 0 ]; then
+    echo "Usage: `basename $0` pattern <source_dir>"
+    exit $E_BADARGS
+elif [ $# -eq 1 ]; then
     input=$1
     sdir="."
     if  [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
         echo "Usage: `basename $0` pattern <source_dir>"
         exit
     fi
-elif [ $# -eq 2 ]; then
-    input=$1
-    sdir=$2
 else
-    echo "Usage: `basename $0` pattern <source_dir>"
-    exit $E_BADARGS
+    last=`echo "$all" | awk '{z=split($0,a," "); print a[z]}'`
+    if [ -d $last ]; then
+        sdir=$last
+        input=`echo "$all" | awk '{ORS=" "; z=split($0,a," "); for (i=1; i<=z-1; i++) print a[i]}'`
+    else
+        input=$all
+        sdir="."
+    fi
 fi
+#echo "input=$input"
+#echo "sdir=$sdir"
 
 # look-up files in current/given directory
-files=`find $sdir -name "$input.*" -type f | egrep -v ".o$|.pyc$|.so$|.a$|~$"`
+check_pfn=`ls $input 2>&1 | tr '\n' ' ' | grep -v "No such"`
+check_ext=`echo "$input" | awk '{z=split($1,a,"."); print z}'`
+match_pat=`echo "$input" | awk '{z=split($1,a,"*"); print z}'`
+if  [ -n "$check_pfn" ]; then
+    files=$check_pfn
+elif  [ "$check_ext" -eq "2" ] || [ "$match_pat" -ne "1" ]; then
+    # file has extension or pattern
+    files=`find $sdir -name "$input" -type f | egrep -v ".o$|.pyc$|.so$|.a$|~$"`
+else
+    files=`find $sdir -name "$input.*" -type f | egrep -v ".o$|.pyc$|.so$|.a$|~$"`
+fi
 
 # look-up function which invoke less command over file choice
 see_file()
