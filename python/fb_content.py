@@ -136,7 +136,10 @@ def get_data(oformat, token, gid, kwds=None, action=None):
         if  key.startswith('https'):
             del args[key]
     if  action and action == 'all':
-        get_data(oformat, token, gid, args, action)
+        try:
+            get_data(oformat, token, gid, args, action)
+        except:
+            return
     else:
         more = "Do you want to retrieve more: "
         action = raw_input(more)
