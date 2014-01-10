@@ -83,7 +83,7 @@ def request(token, path, args=None, post_args=None, timeout=None):
     url = 'https://graph.facebook.com/' +  path + '?' + urllib.urlencode(args)
     try:
         stream = urllib2.urlopen(url, post_data, timeout=timeout)
-    except urllib2.HTTPError, exc:
+    except urllib2.HTTPError as exc:
         msg = 'HTTPError %s' % str(exc.read())
         raise Exception(msg)
     except Exception as exc:
