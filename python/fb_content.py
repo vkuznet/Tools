@@ -60,15 +60,54 @@ Facebook API: https://github.com/pythonforfacebook/facebook-sdk
 # system modules
 import os
 import sys
+import json
+import codecs
+import urllib
+import urllib2
+from optparse import OptionParser
 from urlparse import parse_qsl
 
-# Facebook API
-import facebook
+if sys.version_info < (2, 6):
+    raise Exception("This tool requires python 2.6 or greater")
 
-def main(oformat=None, action=None, token=None):
+def request(token, path, args=None, post_args=None, timeout=None):
+    """Fetch data from Facebook"""
+    args = args or {}
+
+    if  token:
+        if  post_args is not None:
+            post_args["access_token"] = token
+        else:
+            args["access_token"] = token
+    post_data = urllib.urlencode(post_args) if post_args else None
+    url = 'https://graph.facebook.com/' +  path + '?' + urllib.urlencode(args)
+    try:
+        stream = urllib2.urlopen(url, post_data, timeout=timeout)
+    except urllib2.HTTPError, exc:
+        msg = 'HTTPError %s' % str(exc.read())
+        raise Exception(msg)
+    except Exception as exc:
+        msg = 'Fail to fetch data upstream: %s' % str(exc)
+        raise Exception(msg)
+    try:
+        info = stream.info()
+        if  info.maintype == 'text':
+            resp = json.loads(stream.read())
+        elif info.maintype == 'image':
+            mimetype = info['content-type']
+            resp = {'data': stream.read(), 'url':stream.url, 'mime-type':mimetype}
+        else:
+            raise Exception('Do not support %s' % info.maintype)
+    finally:
+        stream.close()
+    if  resp and isinstance(resp, dict) and resp.get("error"):
+        err = resp.get('error', {})
+        msg = 'Error: type %s, message %s' % (error['type'], error['message'])
+        raise Exception(msg)
+    return resp
+
+def fb_fetcher(gid, oformat=None, action=None, token=None):
     "Main function"
-    # Fifi's group id
-    gid=489931094350860
 
     # Get token from, replace GID with actual group id
     if  not token:
@@ -95,12 +134,11 @@ def main(oformat=None, action=None, token=None):
 
 def get_data(oformat, token, gid, kwds=None, action=None):
     "Get data for given group id and user token"
-    graph = facebook.GraphAPI(token)
+    if  not token:
+        print "Please provide access token"
+        sys.exit(1)
     url = "/%s/feed" % gid
-    if  kwds:
-        data = graph.request(url, kwds)
-    else:
-        data = graph.request(url)
+    data = request(token, url, kwds)
     if  oformat == 'csv' and not kwds:
         print 'From,Type,Link,Date,Description,Message'
     for row in data['data']:
@@ -122,8 +160,9 @@ def get_data(oformat, token, gid, kwds=None, action=None):
         elif oformat == 'csv':
             desc = desc.replace(',', ' ').replace('\n', ' ')
             msg  = msg.replace(',', ' ').replace('\n', ' ')
-            print "%s,%s,%s,%s,%s,%s" \
-                    % (person, dtype, link, date, desc, msg)
+            print u"%s,%s,%s,%s,%s,%s" \
+                    % (unicode(person, 'utf-8'), dtype, link, date,
+                            unicode(desc, 'utf-8'), unicode(msg, 'utf-8'))
         else:
             print 'Unsupported output data format'
             sys.exit(1)
@@ -146,13 +185,30 @@ def get_data(oformat, token, gid, kwds=None, action=None):
         if  str(action).lower() in ['y', 'yes']:
             get_data(oformat, token, gid, args)
 
+class FBOptionParser(object):
+    "Option parser"
+    def __init__(self):
+        self.parser = OptionParser()
+        self.parser.add_option("-f", "--format", action="store", type="string",
+            default="plain", dest="format",
+            help="specify output format, e.g. plain, csv")
+        self.parser.add_option("-a", "--action", action="store", type="string",
+            default="day", dest="action",
+            help="fetch record duration, e.g. all, day")
+        self.parser.add_option("-t", "--token", action="store", type="string",
+            default="", dest="token",
+            help="Facebook access token")
+        self.parser.add_option("-g", "--gid", action="store", type=long,
+            default=489931094350860, dest="gid",
+            help="Facebook group-id, default is Fifi's group")
+    def options(self):
+        "Returns parse list of options"
+        return self.parser.parse_args()
+
+def main():
+    optmgr = FBOptionParser()
+    opts, _ = optmgr.options()
+    fb_fetcher(opts.gid, opts.format, opts.action, opts.token)
+
 if __name__ == '__main__':
-    usage = 'Usage: %s <output data format, e.g. csv or plain>' % __file__
-    usage += ' <get records, e.g. all or day> <FB token>'
-    if  len(sys.argv) == 2 and sys.argv[1] in ['-h', '--help', '-help', 'help']:
-        print usage
-        sys.exit(0)
-    oformat = sys.argv[1] if len(sys.argv)==2 else 'plain'
-    action = sys.argv[2] if len(sys.argv)>=3 else 'day'
-    token = sys.argv[3] if len(sys.argv)==4 else None
-    main(oformat, action, token)
+    main()
