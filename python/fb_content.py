@@ -4,7 +4,7 @@
 """
 File       : content.py
 Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
-Description: Access group content via Facebook API
+Description: Grab Facebook group content.
 
 This script allows to get Facebook group content either in plain form:
 
@@ -35,18 +35,27 @@ To get script help
 
     ./fb_content.py -help
 
-    Usage: fb_content.py <output data format, e.g. csv or plain>
-                         <get records, e.g. all or day> <FB token>
+    Usage: fb_content.py [options]
+
+    Options:
+      -h, --help            show this help message and exit
+      -f FORMAT, --format=FORMAT
+                            specify output format, e.g. plain, csv
+      -a ACTION, --action=ACTION
+                            fetch record duration, e.g. all, day
+      -t TOKEN, --token=TOKEN
+                            Facebook access token
+      -g GID, --gid=GID     Facebook group-id, default is Fifi's group
 
 To get interactive modes:
 
-    ./fb_content.py plain day TOKEN
-    ./fb_content.py csv day TOKEN
+    ./fb_content.py
+    ./fb_content.py -f csv -a day -t TOKEN
 
 To get whole group content
 
-    ./fb_content.py plain all TOKEN
-    ./fb_content.py csv all TOKEN
+    ./fb_content.py -f plain -a all -t TOKEN
+    ./fb_content.py -f csv -a all -t TOKEN
 
 Here you need to substitute TOKEN with a string you obtain from Facebook API
 page (see link above or follow on-screen instructions).
@@ -194,7 +203,7 @@ class FBOptionParser(object):
             help="specify output format, e.g. plain, csv")
         self.parser.add_option("-a", "--action", action="store", type="string",
             default="day", dest="action",
-            help="fetch record duration, e.g. all, day")
+            help="fetch record duration, e.g day, all")
         self.parser.add_option("-t", "--token", action="store", type="string",
             default="", dest="token",
             help="Facebook access token")
